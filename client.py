@@ -5,10 +5,11 @@ import socket
 import json
 
 def obter_dados_compra():
+    senha = input("Digite a senha do sistema: ")      # Senha para usar o sistema (Ingresso1234)
     nome = input("Digite o nome do comprador: ")
     cpf = input("Digite o CPF do comprador: ")
     ingresso = input("Digite o código do ingresso: ")
-    return nome, cpf, ingresso
+    return senha, nome, cpf, ingresso
 
 # Gerar chaves pública e privada
 private_key = rsa.generate_private_key(
@@ -50,13 +51,22 @@ while True:
         client_socket.sendall(public_key_pem)
 
         # Dados da compra
-        nome, cpf, ingresso = obter_dados_compra()
+        senha, nome, cpf, ingresso = obter_dados_compra()
 
-        # Criando um dicionário com os dados da compra
+        # Gera um hash com a senha inputada
+        hash_senha = hashes.Hash(hashes.SHA256(), backend=default_backend())
+        hash_senha.update(senha.encode())
+        hash_senha = hash_senha.finalize()
+
+        # Antes de adicionar o hash_senha ao dicionário dados_compra, vamos convertê-lo para uma representação serializável.
+        hash_senha_hex = hash_senha.hex()
+
+        # Agora podemos adicionar o hash_senha convertido ao dicionário dados_compra.
         dados_compra = {
             'nome': nome,
             'cpf': cpf,
-            'ingresso': ingresso
+            'ingresso': ingresso,
+            'hash_senha': hash_senha_hex  # Usando a representação em hexadecimal do hash_senha
         }
 
         # Converte o dicionário para uma string JSON

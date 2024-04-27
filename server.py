@@ -97,6 +97,7 @@ public_key_pem = public_key.public_bytes(
 # Configurações do servidor
 HOST = 'localhost'  # Endereço IP local
 PORT = 1234        # Porta para ouvir conexões
+HASH_SENHA = '1a19e1bb4515db467c7683d7c53000393dfda285efdb04cd6f97f749d1d89f6f'      # Senha para usar o sistema (Ingresso1234)
 
 # Inicializando a blockchain com um bloco de gênese
 blockchain = [Bloco(0, datetime.datetime.now(), "Gênese", "0")]
@@ -145,8 +146,31 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
             # Converte o JSON de volta para um dicionário
             dados_cliente = json.loads(dados_json)
 
-            # Adiciona os dados do cliente a um bloco na blockchain
-            adicionar_bloco(blockchain, dados_cliente)
+            # Verifica se o hash da senha fornecido pelo cliente corresponde ao esperado
+            if dados_cliente.get('hash_senha') != HASH_SENHA:
+                print("Erro: O hash da senha fornecido pelo cliente não corresponde ao esperado.")
+                mensagem = "Erro: Senha incorreta."
+
+                # Criptografa a mensagem usando a chave pública do cliente
+                encrypted_message = client_public_key.encrypt(
+                    mensagem.encode(),
+                    padding.OAEP(
+                        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                        algorithm=hashes.SHA256(),
+                        label=None
+                    )
+                )
+
+                # Envia a mensagem cifrada para o cliente
+                conn.sendall(encrypted_message)
+            else:
+                print("Hash da senha verificado com sucesso.")
+                # Remove o has_senha do dicionário
+                del dados_cliente['hash_senha']
+                # Antes de adicionar a mensagem à blockchain, vamos converter a mensagem recebida de volta para string.
+                mensagem_decifrada = decrypted_data.decode()
+                # Adiciona os dados do cliente a um bloco na blockchain
+                adicionar_bloco(blockchain, dados_cliente)
 
             # Imprime a blockchain atualizada
             print("\nBlockchain atualizada:")
